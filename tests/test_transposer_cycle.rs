@@ -29,7 +29,9 @@ macro_rules! lzss_encoding {
 }
 
 fn test_particular_case(dataset: &str, expected_encoded_dataset: Vec<EncodedRef<char>>) {
-    let encoded_dataset = lzss_encode_dataset(&mut dataset.chars(), 15, 4).collect::<Vec<_>>();
+    let encoded_dataset = lzss_encode_dataset(&mut dataset.chars(), 15, 4)
+        .unwrap()
+        .collect::<Vec<_>>();
 
     assert_eq!(encoded_dataset, expected_encoded_dataset);
     assert_eq!(
@@ -55,4 +57,9 @@ fn test2() {
         "abcdedede",
         lzss_encoding!(create 'a', 'b', 'c', 'd', 'e', off 2 len 4,),
     )
+}
+
+#[test]
+fn test3() {
+    test_particular_case("aaaaa", lzss_encoding!(create 'a', off 1 len 4,))
 }

@@ -13,7 +13,7 @@ where
 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Token(token) => write!(f, "'{token:?}'"),
+            Token(token) => write!(f, "{token:?}"),
             BackReference { offset, length } => write!(f, "off {offset} len {length}"),
         }?;
 

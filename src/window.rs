@@ -1,6 +1,8 @@
-use std::collections::VecDeque;
+use crate::errors::LzssError;
 
-use crate::encoded_reference::EncodedRef;
+use super::encoded_reference::EncodedRef;
+use anyhow::{Context, Error};
+use std::collections::VecDeque;
 
 pub struct LzssWindow<T> {
     sliding_window: VecDeque<Option<T>>,
@@ -11,25 +13,33 @@ impl<T> LzssWindow<T>
 where
     T: PartialEq + Eq + Clone,
 {
-    pub fn new(sliding_window_size: usize, initial_lookahead_buffer: Vec<T>) -> Self {
+    pub fn new(
+        sliding_window_size: usize,
+        initial_lookahead_buffer: Vec<T>,
+    ) -> Result<Self, Error> {
         let lookahead_buffer_size = initial_lookahead_buffer.len();
 
         if sliding_window_size <= lookahead_buffer_size {
-            panic!()
+            return Err(LzssError::IllegalWindowSize).with_context(|| {
+                format!(
+                    "sliding window ( ={sliding_window_size} ) should be \
+                    strictly greater than the lookahead buffer ( ={lookahead_buffer_size} )"
+                )
+            });
         }
 
         let mut window = Self {
             sliding_window: std::iter::repeat_with(|| None)
                 .take(sliding_window_size)
                 .collect(),
-            lookahead_buffer_size: lookahead_buffer_size,
+            lookahead_buffer_size,
         };
 
         initial_lookahead_buffer
             .into_iter()
             .for_each(|token| window.push_optional(Some(token)));
 
-        window
+        Ok(window)
     }
 
     pub(super) fn push_optional(&mut self, token: Option<T>) {
@@ -55,7 +65,7 @@ where
 
                 (lookahead_start_idx - search_start_idx, search_size)
             })
-            .max_by_key(|encoded_ref| encoded_ref.1)
+            .max_by_key(|&(_, length)| length)
             .map_or_else(
                 || EncodedRef::Token(start_token),
                 |(offset, length)| EncodedRef::BackReference { offset, length },
