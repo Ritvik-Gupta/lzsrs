@@ -28,7 +28,7 @@ macro_rules! lzss_encoding {
     }};
 }
 
-fn test_particular_case(dataset: &str, expected_encoded_dataset: Vec<EncodedRef>) {
+fn test_particular_case(dataset: &str, expected_encoded_dataset: Vec<EncodedRef<char>>) {
     let encoded_dataset = lzss_encode_dataset(&mut dataset.chars(), 15, 4).collect::<Vec<_>>();
 
     assert_eq!(encoded_dataset, expected_encoded_dataset);
