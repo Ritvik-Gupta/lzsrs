@@ -1,7 +1,6 @@
-use crate::errors::LzssError;
-
-use super::encoded_reference::EncodedRef;
-use anyhow::{Context, Error};
+use super::encoded_reference::EncodedRef::{self, *};
+use super::errors::LzssError;
+use anyhow::Error;
 use std::collections::VecDeque;
 
 pub struct LzssWindow<T> {
@@ -20,12 +19,11 @@ where
         let lookahead_buffer_size = initial_lookahead_buffer.len();
 
         if sliding_window_size <= lookahead_buffer_size {
-            return Err(LzssError::IllegalWindowSize).with_context(|| {
-                format!(
-                    "sliding window ( ={sliding_window_size} ) should be \
-                    strictly greater than the lookahead buffer ( ={lookahead_buffer_size} )"
-                )
-            });
+            return Err(LzssError::IllegalSlidingWindowSize {
+                sliding_window_size,
+                lookahead_buffer_size,
+            }
+            .into());
         }
 
         let mut window = Self {
@@ -47,9 +45,11 @@ where
         self.sliding_window.push_back(token);
     }
 
-    pub(super) fn find_back_ref_match(&self) -> Option<EncodedRef<T>> {
+    pub(super) fn find_back_ref_match(&self) -> Result<EncodedRef<T>, Error> {
         let lookahead_start_idx = self.sliding_window.len() - self.lookahead_buffer_size;
-        let start_token = self.sliding_window[lookahead_start_idx].clone()?;
+        let start_token = self.sliding_window[lookahead_start_idx]
+            .clone()
+            .ok_or_else(|| LzssError::EmptyLookaheadBuffer)?;
 
         let encoded_ref = (0..lookahead_start_idx)
             .filter(|&idx| Some(start_token.clone()) == self.sliding_window[idx])
@@ -67,10 +67,10 @@ where
             })
             .max_by_key(|&(_, length)| length)
             .map_or_else(
-                || EncodedRef::Token(start_token),
-                |(offset, length)| EncodedRef::BackReference { offset, length },
+                || Token(start_token),
+                |(offset, length)| BackReference { offset, length },
             );
 
-        Some(encoded_ref)
+        Ok(encoded_ref)
     }
 }

@@ -12,7 +12,7 @@ pub fn lzss_encode_dataset<'a, T>(
     lookahead_buffer_size: usize,
 ) -> Result<impl Iterator<Item = EncodedRef<T>> + 'a, Error>
 where
-    T: PartialEq + Eq + Clone + 'a,
+    T: PartialEq + Eq + Clone + Default + 'a,
 {
     let mut window = LzssWindow::new(
         sliding_window_size,
@@ -21,7 +21,7 @@ where
     .with_context(|| format!("could not create the lzss-window"))?;
 
     let encoded_dataset = (0..).map_while(move |_| {
-        let encoded_ref = window.find_back_ref_match()?;
+        let encoded_ref = window.find_back_ref_match().ok()?;
 
         let consuming_length = match encoded_ref {
             Token(_) => 1,
