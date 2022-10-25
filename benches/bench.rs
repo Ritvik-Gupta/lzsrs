@@ -32,7 +32,7 @@ pub fn benchmark(c: &mut Criterion) {
                 ),
                 &dataset,
                 |b, input| {
-                    b.iter_with_large_drop(|| {
+                    b.iter(|| {
                         let mut itr = input.chars();
                         let _res = lzsrs::lzss_encode_dataset(
                             &mut itr,

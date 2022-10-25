@@ -1,5 +1,6 @@
-use super::encoded_reference::EncodedRef::{self, *};
-use super::errors::LzssError;
+use super::{
+    encoded_reference::EncodedRef::*, encoding_consumer::EncodingConsumer, errors::LzssError,
+};
 use anyhow::Error;
 use std::collections::VecDeque;
 
@@ -45,7 +46,7 @@ where
         self.sliding_window.push_back(token);
     }
 
-    pub(super) fn find_back_ref_match(&self) -> Result<EncodedRef<T>, Error> {
+    pub(super) fn find_back_ref_match(&mut self) -> Result<EncodingConsumer<T>, Error> {
         let lookahead_start_idx = self.sliding_window.len() - self.lookahead_buffer_size;
         let start_token = self.sliding_window[lookahead_start_idx]
             .clone()
@@ -71,6 +72,6 @@ where
                 |(offset, length)| BackReference { offset, length },
             );
 
-        Ok(encoded_ref)
+        Ok(EncodingConsumer::new(self, encoded_ref))
     }
 }

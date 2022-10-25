@@ -1,4 +1,5 @@
 pub mod encoded_reference;
+pub mod encoding_consumer;
 pub mod errors;
 pub mod window;
 
@@ -16,22 +17,12 @@ where
 {
     let mut window = LzssWindow::new(
         sliding_window_size,
-        dataset.by_ref().take(lookahead_buffer_size).collect(),
+        dataset.take(lookahead_buffer_size).collect(),
     )
     .with_context(|| format!("could not create the lzss-window"))?;
 
-    let encoded_dataset = (0..).map_while(move |_| {
-        let encoded_ref = window.find_back_ref_match().ok()?;
-
-        let consuming_length = match encoded_ref {
-            Token(_) => 1,
-            BackReference { length, .. } => length,
-        };
-
-        (0..consuming_length).for_each(|_| window.push_optional(dataset.next()));
-
-        Some(encoded_ref)
-    });
+    let encoded_dataset =
+        (0..).map_while(move |_| Some(window.find_back_ref_match().ok()?.consume(dataset)));
 
     Ok(encoded_dataset)
 }
